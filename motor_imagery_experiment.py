@@ -60,14 +60,16 @@ class MotorImageryExperiment:
 
         # === 1. 创建 PsychoPy 窗口 ===
         print("[INFO] 创建显示窗口...")
+
         self.win = visual.Window(
-            size=[1200, 800],  # 改为窗口模式，便于调试
-            fullscr=False,     # 关闭全屏（如需全屏，改为 True）
+            size=[1600, 1000],  # 大窗口（可手动最大化）
+            fullscr=False,      # 窗口模式
             color=BACKGROUND_COLOR,
             units='height',
             allowGUI=True
         )
-        print("[INFO] 窗口创建成功")
+        print("[INFO] 窗口创建成功（窗口模式）")
+        print("[INFO] 提示：可将窗口拖到外接显示器，然后点击窗口左上角绿色按钮全屏")
 
         # === 2. 创建视觉刺激 ===
         print("[INFO] 创建视觉刺激...")
