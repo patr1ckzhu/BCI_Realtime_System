@@ -42,7 +42,7 @@ raw.plot(duration=10, n_channels=30, scalings='auto',
 
 # Plot the power spectral density
 print("\nGenerating power spectral density plot...")
-raw.compute_psd(fmax=100).plot(average=True, picks='seeg',
+raw.compute_psd(fmax=500).plot(average=True, picks='seeg',
                                 amplitude=False, spatial_colors=False)
 
 # Keep the plots open
