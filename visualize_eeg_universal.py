@@ -148,21 +148,27 @@ def visualize_eeg_file(file_path, show_events=True, duration=10, n_channels=None
     print("="*70)
 
     # Check if this looks like BCI Competition data
-    is_bci_comp = any(name in ['C3', 'C4', 'Cz', 'C3-A2', 'Cz-A2', 'C4-A2']
+    is_bci_comp = any(name in ['C3', 'C4', 'Cz', 'C3-A2', 'Cz-A2', 'C4-A2'] or
+                      'EEG:C3' in name or 'EEG:C4' in name or 'EEG:Cz' in name
                       for name in raw.ch_names)
 
     # Check if this looks like iEEG data
     is_ieeg = any('POL' in name or 'SEEG' in name.upper()
                   for name in raw.ch_names)
 
+    # First, manually set EOG channels (important for GDF files!)
+    eog_channels = [ch for ch in raw.ch_names if 'EOG' in ch.upper()]
+    if eog_channels:
+        print(f"Setting {len(eog_channels)} EOG channels: {eog_channels}")
+        raw.set_channel_types({ch: 'eog' for ch in eog_channels})
+
     if is_bci_comp:
         print("Detected: BCI Competition / Motor Imagery data")
-        # Set EEG and EOG channel types
+        # Set remaining EEG channel types if needed
         for ch_name in raw.ch_names:
-            if 'EOG' in ch_name.upper():
-                raw.set_channel_types({ch_name: 'eog'})
-            elif any(x in ch_name for x in ['C3', 'C4', 'Cz']):
-                raw.set_channel_types({ch_name: 'eeg'})
+            if 'EOG' not in ch_name.upper():  # Skip already-set EOG channels
+                if any(x in ch_name for x in ['C3', 'C4', 'Cz', 'EEG:']):
+                    raw.set_channel_types({ch_name: 'eeg'})
 
     elif is_ieeg:
         print("Detected: iEEG (intracranial) data")
@@ -177,6 +183,12 @@ def visualize_eeg_file(file_path, show_events=True, duration=10, n_channels=None
 
     print(f"Updated channel types: {set(raw.get_channel_types())}")
 
+    # Print channel type breakdown
+    ch_types_updated = raw.get_channel_types()
+    for ch_type in set(ch_types_updated):
+        channels = [raw.ch_names[i] for i, t in enumerate(ch_types_updated) if t == ch_type]
+        print(f"  - {ch_type}: {len(channels)} channels - {channels}")
+
     # ========================================================================
     # Visualization
     # ========================================================================
@@ -188,27 +200,33 @@ def visualize_eeg_file(file_path, show_events=True, duration=10, n_channels=None
     if n_channels is None:
         n_channels = min(30, len(raw.ch_names))
 
-    # Get picks for plotting (exclude misc channels)
-    plot_picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=True,
+    # Get picks for plotting (exclude EOG and misc channels, only show EEG/SEEG)
+    plot_picks = mne.pick_types(raw.info, meg=False, eeg=True, eog=False,
                                  seeg=True, ecog=True, exclude=[])
 
     if len(plot_picks) == 0:
         plot_picks = 'all'
 
+    # Print which channels will be displayed
+    eeg_channels = [raw.ch_names[i] for i in plot_picks] if isinstance(plot_picks, (list, np.ndarray)) else raw.ch_names
+    print(f"\nChannels to display: {len(eeg_channels) if isinstance(eeg_channels, list) else 'all'}")
+    if isinstance(eeg_channels, list) and len(eeg_channels) <= 10:
+        print(f"Channel names: {eeg_channels}")
+
     print(f"\n1. Interactive time-series plot")
     print("   - Use arrow keys to navigate")
     print("   - Use +/- to adjust scaling")
 
-    # Plot raw data with events if available
+    # Plot raw data with events if available (only EEG channels)
     if events is not None and len(events) > 0:
-        raw.plot(duration=duration, n_channels=n_channels,
+        raw.plot(duration=duration, n_channels=n_channels, picks=plot_picks,
                 scalings='auto', events=events, event_id=event_id,
-                title=f'Data Visualization: {os.path.basename(file_path)}',
+                title=f'Data Visualization (EEG only): {os.path.basename(file_path)}',
                 block=False)
     else:
-        raw.plot(duration=duration, n_channels=n_channels,
+        raw.plot(duration=duration, n_channels=n_channels, picks=plot_picks,
                 scalings='auto',
-                title=f'Data Visualization: {os.path.basename(file_path)}',
+                title=f'Data Visualization (EEG only): {os.path.basename(file_path)}',
                 block=False)
 
     # Plot PSD
