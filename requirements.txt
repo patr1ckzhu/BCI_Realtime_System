@@ -1,0 +1,24 @@
+# BCI Real-time System - Python Dependencies
+# Install with: pip install -r requirements.txt
+
+# Core scientific computing
+numpy==2.2.6
+scipy==1.14.1
+pandas==2.3.3
+
+# Data visualization
+matplotlib==3.10.7
+pyqtgraph==0.14.0
+
+# EEG/Neuroimaging analysis
+mne==1.11.0
+
+# Lab Streaming Layer (LSL)
+pylsl==1.17.6
+pyxdf==1.17.0
+
+# Psychopy for experiments
+psychopy==2025.2.1
+
+# GUI framework
+PyQt6==6.10.0
