@@ -6,6 +6,7 @@ Visualize XDF file with MNE (interactive viewer like GDF)
 import mne
 import pyxdf
 import numpy as np
+import matplotlib.pyplot as plt
 
 # Load XDF file
 xdf_file = 'block_Default.xdf'
@@ -80,6 +81,19 @@ raw = mne.io.RawArray(eeg_data, info)
 # Set the first timestamp as the start time
 raw.set_meas_date(eeg_timestamps[0])
 
+# Select only Ch2, Ch3, Ch4 for analysis
+channels_to_keep = ['Ch2', 'Ch3', 'Ch4']
+available_channels = [ch for ch in channels_to_keep if ch in raw.ch_names]
+
+if len(available_channels) == 3:
+    print(f"\n✓ Selecting channels: {available_channels}")
+    raw.pick_channels(available_channels)
+else:
+    print(f"\n⚠ Warning: Could not find all requested channels")
+    print(f"  Requested: {channels_to_keep}")
+    print(f"  Available: {raw.ch_names}")
+    print(f"  Found: {available_channels}")
+
 print("\n" + "="*70)
 print("EXTRACTING MARKERS")
 print("="*70)
@@ -144,6 +158,39 @@ else:
     event_id = None
 
 print("\n" + "="*70)
+print("POWER SPECTRAL DENSITY (PSD)")
+print("="*70)
+
+# Compute and plot PSD
+print("\nComputing Power Spectral Density...")
+try:
+    # For EEG data, typically interested in frequencies up to 50 Hz
+    # (includes delta, theta, alpha, beta, and low gamma bands)
+    fmax = 50  # Hz
+
+    # Compute PSD using Welch's method
+    psd = raw.compute_psd(fmax=fmax)
+
+    # Plot average PSD across all channels
+    fig_psd = psd.plot(average=True, picks='eeg',
+                       amplitude=False, spatial_colors=False,
+                       show=False)
+    fig_psd.suptitle(f'Power Spectral Density: {xdf_file}', fontsize=12, fontweight='bold')
+
+    # Also plot PSD for each channel separately
+    fig_psd_channels = psd.plot(average=False, picks='eeg',
+                                amplitude=False, spatial_colors=True,
+                                show=False)
+    fig_psd_channels.suptitle(f'PSD by Channel: {xdf_file}', fontsize=12, fontweight='bold')
+
+    print("✓ PSD computed successfully")
+    print(f"  Frequency range: 0-{fmax} Hz")
+    print(f"  Number of channels: {len(ch_names)}")
+
+except Exception as e:
+    print(f"⚠ Could not compute PSD: {e}")
+
+print("\n" + "="*70)
 print("OPENING INTERACTIVE VIEWER")
 print("="*70)
 print("""
@@ -177,21 +224,25 @@ if event_id:
 if events is not None and len(events) > 0:
     raw.plot(
         duration=10,  # Show 10 seconds at a time
-        n_channels=min(9, len(ch_names)),  # Show all channels (max 9)
+        n_channels=3,  # Show 3 channels (Ch2, Ch3, Ch4)
         scalings='auto',
         events=events,
         event_id=event_id,
         event_color=event_color,
-        title=f'XDF Data: {xdf_file}',
-        block=True  # Block until window is closed
+        title=f'XDF Data (Ch2, Ch3, Ch4): {xdf_file}',
+        block=False  # Don't block so PSD windows are also visible
     )
 else:
     raw.plot(
         duration=10,
-        n_channels=min(9, len(ch_names)),
+        n_channels=3,
         scalings='auto',
-        title=f'XDF Data: {xdf_file}',
-        block=True
+        title=f'XDF Data (Ch2, Ch3, Ch4): {xdf_file}',
+        block=False
     )
 
-print("\nViewer closed.")
+# Show all plots (PSD + interactive viewer)
+print("\n" + "="*70)
+print("All plots displayed. Close windows to exit.")
+print("="*70)
+plt.show()
